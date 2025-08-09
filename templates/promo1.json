@@ -1,8 +1,31 @@
-[
-  { "type": "text", "text": "โปรใหม่มาแล้ว!" },
-  {
-    "type": "flex",
-    "altText": "โปรใหม่",
-    "contents": { "type":"bubble", "body": { "type":"box","layout":"vertical","contents":[{"type":"text","text":"โปรใหม่","weight":"bold","size":"lg"}] } }
+{
+  "type": "flex",
+  "altText": "โปรโมชันใหม่!",
+  "contents": {
+    "type": "bubble",
+    "hero": {
+      "type": "image",
+      "url": "https://picsum.photos/1024/512",
+      "size": "full",
+      "aspectRatio": "20:13",
+      "aspectMode": "cover"
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "md",
+      "contents": [
+        { "type": "text", "text": "ดีลพิเศษวันนี้", "weight": "bold", "size": "xl" },
+        { "type": "text", "text": "ลดสูงสุด 50% ถึงเที่ยงคืนนี้เท่านั้น", "wrap": true }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "sm",
+      "contents": [
+        { "type": "button", "style": "primary", "action": { "type": "uri", "label": "สั่งเลย", "uri": "https://example.com" } }
+      ]
+    }
   }
-]
+}
