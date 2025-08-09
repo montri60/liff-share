@@ -1,0 +1,8 @@
+[
+  { "type": "text", "text": "โปรใหม่มาแล้ว!" },
+  {
+    "type": "flex",
+    "altText": "โปรใหม่",
+    "contents": { "type":"bubble", "body": { "type":"box","layout":"vertical","contents":[{"type":"text","text":"โปรใหม่","weight":"bold","size":"lg"}] } }
+  }
+]
