@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Share via LIFF</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;padding:16px}
+  .box{max-width:680px;margin:auto}
+  .muted{color:#666}
+  code{background:#f4f4f4;padding:2px 6px;border-radius:4px}
+</style>
+<body>
+  <div class="box">
+    <h1>LIFF Share Target Picker</h1>
+    <p class="muted">กำลังเตรียมแชร์...</p>
+    <p class="muted">ถ้าเปิดนอกแอป LINE ระบบจะพาคุณไปล็อกอินก่อน</p>
+  </div>
+</body>
+<script>
+  const LIFF_ID = 'YOUR_LIFF_ID'; // <-- ใส่ของจริงหลังสร้าง LIFF app
+
+  // helper: base64url decode -> JSON
+  function b64urlDecodeToJSON(s){
+    if(!s) return null;
+    s = s.replace(/-/g,'+').replace(/_/g,'/');
+    const pad = s.length % 4; if (pad) s += '='.repeat(4 - pad);
+    const json = decodeURIComponent(escape(atob(s)));
+    return JSON.parse(json);
+  }
+
+  async function main(){
+    await liff.init({ liffId: LIFF_ID });
+
+    // ถ้าเปิดจากเบราว์เซอร์ภายนอก ให้ล็อกอินก่อนใช้
+    if (!liff.isLoggedIn()) {
+      liff.login(); return;
+    }
+
+    // รองรับเฉพาะสภาพแวดล้อมที่มี shareTargetPicker
+    if (!liff.isApiAvailable('shareTargetPicker')) {
+      document.querySelector('.muted').innerText =
+        'shareTargetPicker ใช้ไม่ได้ในสภาพแวดล้อมนี้ (โปรดเปิดในแอป LINE หรืออัปเดตเวอร์ชัน)';
+      return;
+    }
+
+    // รับ payload ทาง query string:
+    // ?payload=<base64url(JSON Flex หรือ array ของข้อความ)>
+    // ?alt=ข้อความ altText (ถ้า payload เป็น flex เดี่ยว)
+    const qs = new URLSearchParams(location.search);
+    const alt = qs.get('alt') || 'Shared from LIFF';
+    const parsed = b64urlDecodeToJSON(qs.get('payload'));
+
+    let messages = [{ type: 'text', text: 'Hello from LIFF' }];
+
+    if (parsed) {
+      if (Array.isArray(parsed)) {
+        messages = parsed; // [{type:'text',...}, {type:'flex',...}, ...]
+      } else {
+        messages = [{ type:'flex', altText: alt, contents: parsed }];
+      }
+    }
+
+    try {
+      const res = await liff.shareTargetPicker(messages);
+      document.querySelector('.muted').innerText = res ? 'แชร์แล้ว' : 'ยกเลิก';
+      // ปิดหน้าต่าง (ถ้าอยู่ใน LIFF browser บนมือถือ)
+      setTimeout(() => liff.closeWindow?.(), 800);
+    } catch (e) {
+      document.querySelector('.muted').innerText = 'Error: ' + e.message;
+      console.error(e);
+    }
+  }
+  main();
+</script>
