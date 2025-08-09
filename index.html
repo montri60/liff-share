@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login with LINE</title>
-  <meta name="description" content="Demo หน้าเว็บที่มีปุ่มเข้าสู่ระบบด้วย LINE โดยใช้ LIFF SDK">
+  <title>Login with LINE + Flex JSON Editor</title>
+  <meta name="description" content="หน้าเว็บตัวอย่าง Login with LINE และกรอก Alt Text กับ Flex JSON เพื่อนำไปใช้งานและแชร์ด้วย Share Target Picker">
   
-  <!-- ใส่ LIFF ID ที่นี่ หรือส่งผ่านพารามิเตอร์ URL ?liffId=YOUR_LIFF_ID -->
+  <!-- LIFF ID ของคุณ หรือส่งผ่านพารามิเตอร์ URL ?liffId= -->
   <meta name="liff-id" content="2007800861-9aDaLaO3">
 
   <style>
@@ -18,12 +18,13 @@
       background: #f7f7f8;
       color: #111;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
+      padding: 32px 16px;
     }
     main {
       width: 100%;
-      max-width: 460px;
+      max-width: 1120px;
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 10px 30px rgba(0,0,0,.08);
@@ -35,19 +36,48 @@
     .profile img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; background: #eee; }
     .muted { color: #555; font-size: .95rem; word-break: break-all; }
     button {
-      width: 100%;
       border: 0;
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
       font-weight: 600;
       cursor: pointer;
     }
     .btn-line { background: #06C755; color: white; }
     .btn-logout { background: #efefef; }
-    details { background: #fafafa; border-radius: 12px; padding: 10px 12px; }
-    summary { cursor: pointer; font-weight: 600; }
-    pre { margin: 10px 0 0; max-height: 220px; overflow: auto; }
-    footer { text-align: center; font-size: .8rem; color: #888; margin-top: 12px; }
+    .btn { background: #111; color: #fff; }
+    .btn-ghost { background: #f0f0f0; }
+
+    /* widths */
+    .btn-full { width: 100%; }
+
+    /* Editor layout */
+    .app-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 12px; }
+    @media (min-width: 980px) {
+      .app-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .card { background: #ffffff; border: 1px solid #eee; border-radius: 14px; padding: 16px; }
+    .field { display: grid; gap: 6px; margin-bottom: 12px; }
+    .field label { font-size: .9rem; color: #444; font-weight: 600; }
+    .field input[type="text"], .field textarea {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: .96rem;
+      background: #fafafa;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .note { font-size: .85rem; color: #777; }
+
+    /* Basic preview style (ไม่ใช่ตัวเรนเดอร์ทางการ) */
+    .preview-area { background: #f6fffa; border: 1px dashed #cde9d9; border-radius: 14px; padding: 12px; }
+    .chat-preview { background: #fff; border: 1px solid #e6e6e6; border-radius: 14px; overflow: hidden; }
+    .chat-hero { width: 100%; height: 220px; object-fit: cover; background: #eee; display: block; }
+    .chat-body { padding: 12px; }
+    .chat-title { font-weight: 700; margin-bottom: 6px; }
+    .chat-footer { padding: 12px; display: grid; gap: 8px; }
+    .chat-btn { padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fff; text-align: center; font-weight: 600; }
   </style>
 
   <!-- LIFF SDK -->
@@ -59,7 +89,7 @@
     <div id="status">พร้อมเริ่มใช้งาน</div>
 
     <div id="guest" hidden>
-      <button id="loginBtn" class="btn-line">Login with LINE</button>
+      <button id="loginBtn" class="btn-line btn-full">Login with LINE</button>
     </div>
 
     <div id="user" hidden>
@@ -71,10 +101,50 @@
         </div>
       </div>
       <div id="idtokenWrap" style="margin:12px 0"></div>
-      <button id="logoutBtn" class="btn-logout">ออกจากระบบ</button>
+      <div class="row">
+        <button id="logoutBtn" class="btn-logout btn-full">ออกจากระบบ</button>
+      </div>
     </div>
 
-    <footer>ตั้งค่า LIFF ID ให้ถูกต้องใน meta หรือพารามิเตอร์ URL</footer>
+    <!-- Flex JSON Editor -->
+    <section id="app" hidden>
+      <div class="app-grid">
+        <div class="card">
+          <h2 style="margin:0 0 12px">Flex JSON Editor</h2>
+          <div class="field">
+            <label for="title">Title (ไม่บังคับ)</label>
+            <input id="title" type="text" placeholder="เช่น test Flex Message">
+          </div>
+          <div class="field">
+            <label for="altText">Alt Text</label>
+            <input id="altText" type="text" placeholder="เช่น ข้อความอธิบายเมื่อแชทมองไม่เห็นภาพ">
+          </div>
+          <div class="field">
+            <label for="flexJson">Flex JSON Contents</label>
+            <textarea id="flexJson" rows="16" spellcheck="false" placeholder='ใส่ JSON ของ Flex Message ที่คัดลอกจาก Flex Message Simulator เช่น {"type":"bubble", ... } หรือโครงเต็มแบบ {"type":"flex","altText":"...","contents":{...}}'></textarea>
+          </div>
+          <div class="row">
+            <button id="btnPreview" class="btn">Preview</button>
+            <button id="btnSample" class="btn-ghost">Load Sample</button>
+            <button id="btnClear" class="btn-ghost">Clear</button>
+            <button id="btnCopy" class="btn-ghost">Copy JSON</button>
+            <button id="btnShare" class="btn-line">Share Target Picker</button>
+          </div>
+          <p class="note">บันทึกอัตโนมัติในเบราว์เซอร์ของคุณ • การส่งต้องเปิดผ่าน LINE แอปที่รองรับ Share Target Picker</p>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px">Preview</h2>
+          <div class="preview-area">
+            <div id="previewHint" class="note" style="padding:8px 10px;">กดปุ่ม Preview เพื่อดูตัวอย่างแบบง่าย</div>
+            <div id="preview" class="chat-preview" style="display:none"></div>
+          </div>
+          <p class="note" style="margin-top:10px">นี่เป็นเพียงตัวอย่างแบบง่ายเพื่อช่วยเช็คโครงสร้าง แนะนำให้เปิดดูใน Flex Message Simulator สำหรับเรนเดอร์ที่ถูกต้อง 100%</p>
+        </div>
+      </div>
+    </section>
+
+    <footer style="text-align:center; font-size:.82rem; color:#888; margin-top: 14px;">ตั้งค่า LIFF ID ให้ถูกต้องใน meta หรือพารามิเตอร์ URL</footer>
   </main>
 
   <script>
@@ -83,11 +153,26 @@
     const status = $('#status')
     const guest = $('#guest')
     const user = $('#user')
+    const app = $('#app')
+
     const loginBtn = $('#loginBtn')
     const logoutBtn = $('#logoutBtn')
     const nameEl = $('#name')
     const uidEl = $('#uid')
     const picEl = $('#pic')
+
+    const altTextEl = $('#altText')
+    const flexJsonEl = $('#flexJson')
+    const titleEl = $('#title')
+
+    const btnPreview = $('#btnPreview')
+    const btnSample = $('#btnSample')
+    const btnClear = $('#btnClear')
+    const btnCopy = $('#btnCopy')
+    const btnShare = $('#btnShare')
+
+    const preview = $('#preview')
+    const previewHint = $('#previewHint')
 
     const metaId = document.querySelector('meta[name="liff-id"]')
     const liffIdFromMeta = metaId && metaId.content && metaId.content !== 'YOUR_LIFF_ID_HERE' ? metaId.content : ''
@@ -96,6 +181,137 @@
 
     function setStatus(msg) { status.textContent = msg }
 
+    // พักค่าลง localStorage
+    const KEY = 'flexEditorStateV1'
+    function saveState() {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({
+          title: titleEl.value || '',
+          altText: altTextEl.value || '',
+          json: flexJsonEl.value || ''
+        }))
+      } catch {}
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(KEY)
+        if (!raw) return
+        const s = JSON.parse(raw)
+        if (s.title) titleEl.value = s.title
+        if (s.altText) altTextEl.value = s.altText
+        if (s.json) flexJsonEl.value = s.json
+      } catch {}
+    }
+
+    function normalizeBubble(obj) {
+      // รองรับทั้งรูปแบบ bubble ตรงๆ และแบบ type:flex
+      if (!obj || typeof obj !== 'object') return null
+      if (obj.type === 'flex' && obj.contents) return obj.contents
+      if (obj.type === 'bubble' || obj.type === 'carousel') return obj
+      return null
+    }
+
+    function extractTextFromBody(bubble) {
+      try {
+        const body = bubble.body
+        if (!body || !Array.isArray(body.contents)) return ''
+        const t = body.contents.find(c => c.type === 'text' && c.text)
+        return t ? t.text : ''
+      } catch { return '' }
+    }
+
+    function extractButtons(bubble) {
+      try {
+        const footer = bubble.footer
+        if (!footer || !Array.isArray(footer.contents)) return []
+        return footer.contents.filter(c => c.type === 'button').map(b => {
+          const label = (b.action && (b.action.label || b.action.text)) || 'Button'
+          return { label }
+        })
+      } catch { return [] }
+    }
+
+    function renderPreviewFromJSON(raw) {
+      preview.innerHTML = ''
+      let data
+      try {
+        data = JSON.parse(raw)
+      } catch (e) {
+        preview.style.display = 'none'
+        previewHint.style.display = 'block'
+        previewHint.textContent = 'JSON ไม่ถูกต้อง ' + e.message
+        return
+      }
+
+      let bubble = normalizeBubble(data)
+      if (!bubble) {
+        preview.style.display = 'none'
+        previewHint.style.display = 'block'
+        previewHint.textContent = 'โครงสร้างไม่รองรับ ต้องเป็น bubble หรือ carousel หรือ type:flex พร้อม contents'
+        return
+      }
+
+      // ถ้าเป็น carousel ให้หยิบ bubble แรกมา preview แบบง่าย
+      if (bubble.type === 'carousel' && Array.isArray(bubble.contents) && bubble.contents.length) {
+        bubble = bubble.contents[0]
+      }
+
+      const heroUrl = bubble.hero && bubble.hero.url ? bubble.hero.url : ''
+      const title = titleEl.value.trim() || extractTextFromBody(bubble) || 'Preview'
+      const buttons = extractButtons(bubble)
+
+      const card = document.createElement('div')
+      card.className = 'chat-preview'
+
+      if (heroUrl) {
+        const img = document.createElement('img')
+        img.className = 'chat-hero'
+        img.src = heroUrl
+        img.alt = 'hero'
+        card.appendChild(img)
+      }
+
+      const body = document.createElement('div')
+      body.className = 'chat-body'
+      const h = document.createElement('div')
+      h.className = 'chat-title'
+      h.textContent = title
+      body.appendChild(h)
+      const alt = document.createElement('div')
+      alt.className = 'note'
+      alt.textContent = 'Alt Text ' + (altTextEl.value || '-')
+      body.appendChild(alt)
+      card.appendChild(body)
+
+      if (buttons.length) {
+        const ft = document.createElement('div')
+        ft.className = 'chat-footer'
+        buttons.slice(0,3).forEach(b => {
+          const el = document.createElement('div')
+          el.className = 'chat-btn'
+          el.textContent = b.label
+          ft.appendChild(el)
+        })
+        card.appendChild(ft)
+      }
+
+      preview.appendChild(card)
+      preview.style.display = 'block'
+      previewHint.style.display = 'none'
+    }
+
+    // ตัวอย่าง JSON มาตรฐาน bubble
+    const SAMPLE = {
+      type: 'bubble',
+      hero: { type: 'image', url: 'https://developers-resource.landpress.line.me/fx/img/01_1_cafe.png', size: 'full', aspectRatio: '20:13', aspectMode: 'cover' },
+      body: { type: 'box', layout: 'vertical', contents: [ { type: 'text', text: 'Brown Cafe', weight: 'bold', size: 'xl' } ] },
+      footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+        { type: 'button', style: 'link', height: 'sm', action: { type: 'uri', label: 'CALL', uri: 'https://line.me/' } },
+        { type: 'button', style: 'link', height: 'sm', action: { type: 'uri', label: 'WEBSITE', uri: 'https://line.me/' } }
+      ], flex: 0 }
+    }
+
+    // ==== LIFF flow ====
     async function renderProfile() {
       setStatus('เข้าสู่ระบบแล้ว')
       const profile = await liff.getProfile()
@@ -117,6 +333,7 @@
 
       guest.hidden = true
       user.hidden = false
+      app.hidden = false
     }
 
     try {
@@ -138,7 +355,6 @@
 
       loginBtn?.addEventListener('click', () => {
         if (liff.isInClient()) {
-          // ปกติใน LINE แอปจะมีเซสชันอยู่แล้ว แต่เรียก login ไว้เพื่อความชัดเจน
           liff.login()
         } else {
           liff.login({ redirectUri: location.href })
@@ -149,6 +365,92 @@
         liff.logout()
         location.reload()
       })
+
+      // ==== Editor events ====
+      loadState()
+      btnSample.addEventListener('click', () => {
+        titleEl.value = 'test Flex Message'
+        altTextEl.value = 'test Flex Message'
+        flexJsonEl.value = JSON.stringify(SAMPLE, null, 2)
+        saveState()
+        renderPreviewFromJSON(flexJsonEl.value)
+      })
+      btnClear.addEventListener('click', () => {
+        titleEl.value = ''
+        altTextEl.value = ''
+        flexJsonEl.value = ''
+        saveState()
+        preview.style.display = 'none'
+        previewHint.style.display = 'block'
+        previewHint.textContent = 'เคลียร์ข้อมูลแล้ว'
+      })
+      btnCopy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(flexJsonEl.value)
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'คัดลอก JSON แล้ว'
+        } catch {}
+      })
+      btnPreview.addEventListener('click', () => {
+        saveState()
+        renderPreviewFromJSON(flexJsonEl.value)
+      })
+
+      // Share Target Picker
+      btnShare.addEventListener('click', async () => {
+        saveState()
+        if (!liff.isInClient()) {
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'ต้องเปิดหน้านี้ผ่าน LINE แอป (LIFF) เพื่อใช้ Share Target Picker'
+          return
+        }
+        if (!liff.isApiAvailable || !liff.isApiAvailable('shareTargetPicker')) {
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'อุปกรณ์นี้ไม่รองรับ shareTargetPicker'
+          return
+        }
+        const raw = (flexJsonEl.value || '').trim()
+        if (!raw) {
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'กรุณาใส่ Flex JSON ก่อน'
+          return
+        }
+        let data
+        try { data = JSON.parse(raw) } catch (e) {
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'JSON ไม่ถูกต้อง ' + e.message
+          return
+        }
+        const bubble = normalizeBubble(data)
+        if (!bubble) {
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'โครงสร้างไม่รองรับ ต้องเป็น bubble หรือ carousel หรือ type:flex พร้อม contents'
+          return
+        }
+        const altText = (altTextEl.value || titleEl.value || 'Flex message').slice(0, 400)
+        try {
+          const res = await liff.shareTargetPicker([
+            { type: 'flex', altText, contents: bubble }
+          ], { isMultiple: true })
+          if (res) {
+            previewHint.style.display = 'block'
+            previewHint.textContent = 'ส่งไปยังผู้รับที่เลือกแล้ว'
+            // liff.closeWindow() // ปิดหน้าต่างหลังแชร์ หากต้องการ
+          }
+        } catch (e) {
+          previewHint.style.display = 'block'
+          previewHint.textContent = 'แชร์ไม่สำเร็จ ' + (e && e.message ? e.message : e)
+        }
+      })
+
+      // auto-save on input stop
+      let t
+      ;[titleEl, altTextEl, flexJsonEl].forEach(el => {
+        el.addEventListener('input', () => {
+          clearTimeout(t); t = setTimeout(saveState, 300)
+        })
+      })
+
     } catch (err) {
       console.error(err)
       setStatus('เกิดข้อผิดพลาด ' + (err && err.message ? err.message : err))
