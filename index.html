@@ -1,142 +1,201 @@
 <!doctype html>
 <html lang="th">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Share via LIFF</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-      :root { color-scheme: light dark; }
-      body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 24px; }
-      .wrap { max-width: 720px; margin: 0 auto; }
-      h1 { font-size: 22px; margin: 0 0 12px; }
-      #status { padding: 12px 14px; border: 1px solid #ddd; border-radius: 8px; }
-      .hint { color: #666; margin-top: 12px; font-size: 14px; }
-      button { margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: 0; background: #06c755; color: #fff; cursor: pointer; }
-      button.secondary { background: #888; }
-      pre { white-space: pre-wrap; font-size: 12px; background: #f6f6f6; padding: 8px; border-radius: 6px; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <h1>LIFF Share Target Picker</h1>
-      <div id="status">กำลังเตรียมแชร์…</div>
-      <div class="hint" id="hint"></div>
-      <button id="retry" style="display:none">แชร์อีกครั้ง</button>
-      <button id="openInLine" class="secondary" style="display:none">เปิดในแอป LINE</button>
-      <details style="margin-top:12px">
-        <summary>Debug</summary>
-        <pre id="dbg"></pre>
-      </details>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LIFF Share Target Picker</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
+    .wrap{max-width:920px;margin:32px auto;padding:0 16px}
+    h1{font-size:26px;margin:0 0 16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+    label{display:block;font-size:14px;margin-bottom:6px;color:#666}
+    input[type="text"], textarea{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:10px;padding:10px 12px;font-size:14px;background:#fff}
+    textarea{min-height:220px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+    button{border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    .primary{background:#06c755;color:#fff}
+    .ghost{background:#eef2f7}
+    .pill{display:inline-flex;gap:8px;align-items:center;background:#eef7f0;color:#065f46;border-radius:999px;padding:6px 10px;font-size:13px}
+    .spacer{flex:1}
+    details{margin-top:10px}
+    pre{background:#0b1020;color:#e5e7eb;border-radius:10px;padding:10px;white-space:pre-wrap}
+    .muted{color:#888}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>LIFF Share Target Picker</h1>
+
+  <div class="card row">
+    <div id="who" class="pill" style="display:none"></div>
+    <div class="spacer"></div>
+    <button id="login"  class="primary">Login with LINE</button>
+    <button id="logout" class="ghost"   style="display:none">Logout</button>
+    <button id="openInApp" class="ghost" title="เปิดในแอป LINE">เปิดในแอป LINE…</button>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="loadTpl" class="ghost">โหลดเทมเพลต (templates)</button>
+      <button id="loadSample" class="ghost">ใส่ Sample Flex</button>
+      <div class="spacer"></div>
+      <button id="share" class="primary">แชร์ (shareTargetPicker)</button>
     </div>
 
-    <script>
-      // ===== config / query =====
-      const qs = new URLSearchParams(location.search);
-      const DEFAULT_LIFF_ID = "2007800861-9aDaLaO3";                // <-- แก้ใส่ของคุณ
-      const LIFF_ID = qs.get("id") || DEFAULT_LIFF_ID;       // หรือส่ง ?id= มาพร้อมลิงก์
-      const TPL = qs.get("tpl");                             // ชื่อไฟล์ใน /templates (ไม่ต้องใส่ .json)
-      const P_B64URL = qs.get("p");                          // payload แบบ base64url(JSON หรือ [JSON,...])
-      const DEBUG = qs.has("debug");
+    <div style="margin-top:12px">
+      <label for="alt">Alt Text</label>
+      <input id="alt" type="text" placeholder="เช่น โปรโมชันพิเศษ..." />
+    </div>
 
-      // ===== helpers =====
-      const $ = (id) => document.getElementById(id);
-      function setStatus(t){ $("status").textContent = t; }
-      function setHint(t){ $("hint").textContent = t || ""; }
-      function log(o){ $("dbg").textContent = (typeof o === "string") ? o : JSON.stringify(o, null, 2); }
+    <div style="margin-top:12px">
+      <label for="json">Flex JSON Contents</label>
+      <textarea id="json" placeholder='วาง JSON จาก Flex Message Simulator ที่นี่'></textarea>
+    </div>
 
-      function b64urlDecodeToJson(s){
-        try{
-          let x = s.replace(/-/g, "+").replace(/_/g, "/");
-          while (x.length % 4) x += "=";
-          const str = atob(x);
-          // atob → UTF-8
-          const utf8 = decodeURIComponent(escape(str));
-          return JSON.parse(utf8);
-        }catch(e){
-          throw new Error("ไม่สามารถถอดรหัส p (base64url) ได้: " + e.message);
-        }
+    <details id="dbgWrap">
+      <summary>Debug</summary>
+      <pre id="dbg">-</pre>
+    </details>
+  </div>
+
+  <p class="muted">
+    รองรับพารามิเตอร์: <code>?id=&lt;LIFF_ID&gt;</code>, <code>?tpl=promo1</code>, <code>?p=&lt;base64(JSON หรือ [JSON,...])&gt;</code>
+  </p>
+</div>
+
+<script>
+/* ===== Query / helpers ===== */
+const qs = new URLSearchParams(location.search);
+const TPL = qs.get('tpl');
+const DEBUG = qs.has('debug');
+
+const $ = id => document.getElementById(id);
+const log = (...a)=>{ if(!DEBUG) return; $('dbg').textContent = a.map(x=>{
+  try{ return typeof x==='string'?x:JSON.stringify(x,null,2); }catch(e){ return String(x); }
+}).join("\n"); $('dbgWrap').open = true; };
+
+function b64urlToText(s){
+  s = s.replace(/-/g,'+').replace(/_/g,'/'); while (s.length % 4) s+='=';
+  return new TextDecoder().decode(Uint8Array.from(atob(s), c=>c.charCodeAt(0)));
+}
+
+/* ===== Load LIFF ID: ?id= → config.json → error ===== */
+async function getLiffId(){
+  const fromUrl = qs.get('id');
+  if (fromUrl) return fromUrl;
+  const cfgUrl = './config.json?v=' + Date.now(); // กัน cache
+  try{
+    const cfg = await fetch(cfgUrl).then(r=>r.json());
+    if (TPL && cfg.liffByTpl && cfg.liffByTpl[TPL]) return cfg.liffByTpl[TPL];
+    if (cfg.liffId) return cfg.liffId;
+  }catch(e){ log('config.json error', e); }
+  throw new Error('NO_LIFF_ID: โปรดส่ง ?id= หรือใส่ใน config.json');
+}
+
+/* ===== Load payload from ?p or templates/<tpl>.json ===== */
+async function presetPayload(){
+  const p = qs.get('p');
+  if (p){
+    try{
+      const text = b64urlToText(p);
+      const data = JSON.parse(text);
+      $('json').value = JSON.stringify(data, null, 2);
+      log('loaded from ?p', data);
+      return;
+    }catch(e){ log('bad ?p', e); }
+  }
+  if (TPL){
+    try{
+      const res = await fetch(`./templates/${TPL}.json?${Date.now()}`);
+      const data = await res.json();
+      $('json').value = JSON.stringify(data, null, 2);
+      if (data.altText) $('alt').value = data.altText;
+      log('loaded template', data);
+    }catch(e){ log('load tpl error', e); }
+  }
+}
+
+/* ===== Convert editor → LINE messages ===== */
+function buildMessages(){
+  const alt = $('alt').value.trim() || 'Flex Message';
+  let obj;
+  try{ obj = JSON.parse(($('json').value || '').trim() || '{}'); }
+  catch(e){ alert('JSON ไม่ถูกต้อง'); throw e; }
+
+  const list = Array.isArray(obj) ? obj : [obj];
+  return list.map(it => (it.type === 'flex' ? it : { type:'flex', altText: alt, contents: it }));
+}
+
+/* ===== Bootstrap ===== */
+async function main(){
+  const liffId = await getLiffId();
+  log('using LIFF ID', liffId);
+  await liff.init({ liffId });
+
+  $('login').onclick  = () => liff.login({ redirectUri: location.href });
+  $('logout').onclick = () => { liff.logout(); location.reload(); };
+  $('openInApp').onclick = () => liff.openWindow({ url: location.href, external:false });
+
+  if (liff.isLoggedIn()){
+    $('login').style.display = 'none';
+    $('logout').style.display = '';
+    try{
+      const p = await liff.getProfile();
+      $('who').style.display = '';
+      $('who').textContent = `เข้าสู่ระบบแล้ว: ${p.displayName}`;
+    }catch(e){ log('profile error', e); }
+  }else{
+    $('logout').style.display = 'none';
+  }
+
+  $('loadSample').onclick = () => {
+    const sample = {
+      type: "flex",
+      altText: "ตัวอย่าง Flex",
+      contents: {
+        type: "bubble",
+        body: { type: "box", layout: "vertical", contents: [
+          { type: "text", text: "สวัสดี 👋", weight: "bold", size: "xl" },
+          { type: "text", text: "นี่คือข้อความตัวอย่าง", margin: "md", wrap: true }
+        ] }
       }
+    };
+    $('alt').value  = sample.altText;
+    $('json').value = JSON.stringify(sample, null, 2);
+  };
 
-      async function loadMessages(){
-        // 1) payload ตรงผ่าน ?p=
-        if (P_B64URL){
-          const data = b64urlDecodeToJson(P_B64URL);
-          return Array.isArray(data) ? data : [data];
-        }
-        // 2) โหลดจาก /templates/*.json ผ่าน ?tpl=
-        if (TPL){
-          const url = `templates/${encodeURIComponent(TPL)}.json?ts=${Date.now()}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`โหลดเทมเพลตไม่สำเร็จ: ${url}`);
-          const data = await res.json();
-          return Array.isArray(data) ? data : [data];
-        }
-        // 3) ค่าเริ่มต้น
-        return [{ type:"text", text:"Hello from LIFF 🎉" }];
-      }
+  $('loadTpl').onclick = async () => {
+    const name = prompt('ชื่อเทมเพลต (ไม่ต้อง .json)\nเช่น: promo1');
+    if (!name) return;
+    try{
+      const r = await fetch(`./templates/${name}.json?${Date.now()}`);
+      const data = await r.json();
+      $('json').value = JSON.stringify(data, null, 2);
+      $('alt').value  = data.altText || $('alt').value;
+    }catch(e){ alert('โหลดไม่สำเร็จ'); }
+  };
 
-      function deepLinkToLine(){
-        // เปิดหน้านี้ในแอป LINE (จำเป็นสำหรับ shareTargetPicker)
-        const q = location.search.replace(/^\?/, "");
-        location.href = `https://liff.line.me/${encodeURIComponent(LIFF_ID)}${q ? "?" + q : ""}`;
-      }
+  $('share').onclick = async () => {
+    try{
+      const msgs = buildMessages();
+      const res = await liff.shareTargetPicker(msgs);
+      if (res) alert('ส่งแล้ว 🎉'); // res: { status: 'success' ... }
+    }catch(e){
+      console.error(e);
+      alert('แชร์ไม่สำเร็จ: ' + (e?.message || e));
+    }
+  };
 
-      async function shareOnce(){
-        setStatus("กำลังแชร์…");
-        setHint("");
-        $("retry").style.display = "none";
+  await presetPayload();
+}
 
-        try {
-          const messages = await loadMessages();
-          log({ LIFF_ID, inClient: liff.isInClient(), apiShare: liff.isApiAvailable("shareTargetPicker"), messages });
-
-          if (!liff.isInClient() || !liff.isApiAvailable("shareTargetPicker")){
-            setStatus("shareTargetPicker ใช้ไม่ได้ในสภาพแวดล้อมนี้");
-            setHint("กรุณาเปิดลิงก์นี้ในแอป LINE");
-            $("openInLine").style.display = "inline-block";
-            return;
-          }
-
-          await liff.shareTargetPicker(messages);
-          setStatus("แชร์สำเร็จ ✓");
-
-          // ปิดหน้าต่าง (ถ้าไม่ debug)
-          if (!DEBUG) setTimeout(() => liff.closeWindow(), 800);
-
-          // ถ้าต้องการแชร์ต่อ กด retry
-          $("retry").style.display = "inline-block";
-        } catch (e) {
-          setStatus("แชร์ไม่สำเร็จ");
-          setHint(String(e));
-          $("retry").style.display = "inline-block";
-        }
-      }
-
-      // ===== main =====
-      (async () => {
-        $("retry").onclick = shareOnce;
-        $("openInLine").onclick = deepLinkToLine;
-
-        try {
-          await liff.init({ liffId: LIFF_ID });
-        } catch (e) {
-          setStatus("LIFF init ล้มเหลว");
-          setHint(String(e));
-          $("openInLine").style.display = "inline-block";
-          return;
-        }
-
-        // ถ้าเปิดนอกแอป LINE → ดีพ์ลิงก์พาเข้าแอปให้เอง
-        if (!liff.isInClient()){
-          setStatus("โปรดเปิดในแอป LINE…");
-          deepLinkToLine();
-          return;
-        }
-
-        // พร้อมแชร์
-        await shareOnce();
-      })();
-    </script>
-  </body>
+main().catch(err=>{
+  console.error(err);
+  alert('LIFF init error: ' + (err?.message || err));
+  log(err);
+});
+</script>
+</body>
 </html>
