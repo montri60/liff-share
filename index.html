@@ -90,6 +90,14 @@
 
     <div id="guest" hidden>
       <button id="loginBtn" class="btn-line btn-full">Login with LINE</button>
+      <div class="note" style="margin-top:8px" id="notInClientNote" hidden>
+        แชร์ทำงานได้ในเบราว์เซอร์ที่รองรับ ถ้ากดแล้วไม่มีป๊อปอัป ให้ปลดบล็อกป๊อปอัปของโดเมน access.line.me หรือเปิดใน LINE แอป
+        <div class="row" style="margin-top:8px">
+          <button id="openInLine" class="btn-line">เปิดในแอป LINE</button>
+          <button id="copyLiffUrl" class="btn-ghost">คัดลอกลิงก์ LIFF</button>
+        </div>
+      </div>
+      </div>
     </div>
 
     <div id="user" hidden>
@@ -130,7 +138,7 @@
             <button id="btnCopy" class="btn-ghost">Copy JSON</button>
             <button id="btnShare" class="btn-line">Share Target Picker</button>
           </div>
-          <p class="note">บันทึกอัตโนมัติในเบราว์เซอร์ของคุณ • การส่งต้องเปิดผ่าน LINE แอปที่รองรับ Share Target Picker</p>
+          <p class="note">บันทึกอัตโนมัติในเบราว์เซอร์ของคุณ • แชร์ได้ทั้งในแอป LINE และบนเบราว์เซอร์ที่รองรับ หากป๊อปอัปไม่ขึ้นให้ปลดบล็อก pop-up จาก access.line.me</p>
         </div>
 
         <div class="card">
@@ -170,6 +178,9 @@
     const btnClear = $('#btnClear')
     const btnCopy = $('#btnCopy')
     const btnShare = $('#btnShare')
+    const openInLineBtn = $('#openInLine')
+    const copyLiffUrlBtn = $('#copyLiffUrl')
+    const notInClientNote = $('#notInClientNote')
 
     const preview = $('#preview')
     const previewHint = $('#previewHint')
@@ -346,6 +357,11 @@
       setStatus('กำลังเตรียม LIFF')
       await liff.init({ liffId })
 
+      // โชว์ตัวช่วยถ้าไม่ได้เปิดใน LINE แอป
+      if (!liff.isInClient() && notInClientNote) {
+        notInClientNote.hidden = false
+      }
+
       if (!liff.isLoggedIn()) {
         guest.hidden = false
         user.hidden = true
@@ -364,6 +380,17 @@
       logoutBtn?.addEventListener('click', () => {
         liff.logout()
         location.reload()
+      })
+
+      // ปุ่มช่วยเปิดใน LINE แอป และคัดลอกลิงก์ LIFF
+      openInLineBtn?.addEventListener('click', () => {
+        if (!liffId) return
+        location.href = `line://app/${liffId}`
+      })
+      copyLiffUrlBtn?.addEventListener('click', async () => {
+        if (!liffId) return
+        const url = `https://liff.line.me/${liffId}`
+        try { await navigator.clipboard.writeText(url); setStatus('คัดลอกลิงก์ LIFF แล้ว') } catch {}
       })
 
       // ==== Editor events ====
@@ -399,16 +426,6 @@
       // Share Target Picker
       btnShare.addEventListener('click', async () => {
         saveState()
-        if (!liff.isInClient()) {
-          previewHint.style.display = 'block'
-          previewHint.textContent = 'ต้องเปิดหน้านี้ผ่าน LINE แอป (LIFF) เพื่อใช้ Share Target Picker'
-          return
-        }
-        if (!liff.isApiAvailable || !liff.isApiAvailable('shareTargetPicker')) {
-          previewHint.style.display = 'block'
-          previewHint.textContent = 'อุปกรณ์นี้ไม่รองรับ shareTargetPicker'
-          return
-        }
         const raw = (flexJsonEl.value || '').trim()
         if (!raw) {
           previewHint.style.display = 'block'
@@ -429,13 +446,13 @@
         }
         const altText = (altTextEl.value || titleEl.value || 'Flex message').slice(0, 400)
         try {
+          // อนุญาตให้แชร์ทั้งในแอปและบนเว็บเบราว์เซอร์ ถ้าบราว์เซอร์บล็อกป๊อปอัป ให้ผู้ใช้ปลดบล็อก
           const res = await liff.shareTargetPicker([
             { type: 'flex', altText, contents: bubble }
           ], { isMultiple: true })
           if (res) {
             previewHint.style.display = 'block'
             previewHint.textContent = 'ส่งไปยังผู้รับที่เลือกแล้ว'
-            // liff.closeWindow() // ปิดหน้าต่างหลังแชร์ หากต้องการ
           }
         } catch (e) {
           previewHint.style.display = 'block'
