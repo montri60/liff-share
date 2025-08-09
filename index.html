@@ -90,14 +90,6 @@
 
     <div id="guest" hidden>
       <button id="loginBtn" class="btn-line btn-full">Login with LINE</button>
-      <div class="note" style="margin-top:8px" id="notInClientNote" hidden>
-        แชร์ทำงานได้ในเบราว์เซอร์ที่รองรับ ถ้ากดแล้วไม่มีป๊อปอัป ให้ปลดบล็อกป๊อปอัปของโดเมน access.line.me หรือเปิดใน LINE แอป
-        <div class="row" style="margin-top:8px">
-          <button id="openInLine" class="btn-line">เปิดในแอป LINE</button>
-          <button id="copyLiffUrl" class="btn-ghost">คัดลอกลิงก์ LIFF</button>
-        </div>
-      </div>
-      </div>
     </div>
 
     <div id="user" hidden>
@@ -178,9 +170,6 @@
     const btnClear = $('#btnClear')
     const btnCopy = $('#btnCopy')
     const btnShare = $('#btnShare')
-    const openInLineBtn = $('#openInLine')
-    const copyLiffUrlBtn = $('#copyLiffUrl')
-    const notInClientNote = $('#notInClientNote')
 
     const preview = $('#preview')
     const previewHint = $('#previewHint')
@@ -356,12 +345,6 @@
 
       setStatus('กำลังเตรียม LIFF')
       await liff.init({ liffId })
-
-      // โชว์ตัวช่วยถ้าไม่ได้เปิดใน LINE แอป
-      if (!liff.isInClient() && notInClientNote) {
-        notInClientNote.hidden = false
-      }
-
       if (!liff.isLoggedIn()) {
         guest.hidden = false
         user.hidden = true
@@ -383,15 +366,6 @@
       })
 
       // ปุ่มช่วยเปิดใน LINE แอป และคัดลอกลิงก์ LIFF
-      openInLineBtn?.addEventListener('click', () => {
-        if (!liffId) return
-        location.href = `line://app/${liffId}`
-      })
-      copyLiffUrlBtn?.addEventListener('click', async () => {
-        if (!liffId) return
-        const url = `https://liff.line.me/${liffId}`
-        try { await navigator.clipboard.writeText(url); setStatus('คัดลอกลิงก์ LIFF แล้ว') } catch {}
-      })
 
       // ==== Editor events ====
       loadState()
