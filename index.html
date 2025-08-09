@@ -4,214 +4,213 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LIFF Share Target Picker</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
-    .wrap{max-width:960px;margin:28px auto;padding:0 16px}
-    h1{font-size:24px;margin:0 0 16px}
-    .card{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:16px}
-    label{display:block;font-weight:600;margin:12px 0 6px}
-    input[type=text],textarea{width:100%;box-sizing:border-box;border:1px solid #cfcfcf;border-radius:8px;padding:10px 12px;font:inherit}
-    textarea{min-height:260px;line-height:1.45;white-space:pre}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    button{appearance:none;border:1px solid #d0d0d0;background:#fff;border-radius:8px;padding:10px 14px;font:inherit;cursor:pointer}
-    button.primary{background:#06c755;border-color:#06c755;color:#fff;font-weight:700}
-    details{margin-top:14px}
-    pre{background:#111;color:#d9d9d9;padding:12px;border-radius:8px;overflow:auto}
-    .muted{color:#6b7280}
-  </style>
+  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans Thai",sans-serif;line-height:1.45;
+         margin:28px;color:#222}
+    .wrap{max-width:920px;margin:auto}
+    h1{font-size:26px;margin:0 0 16px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    button{padding:10px 14px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+    button.primary{background:#06c755;color:#fff;border-color:#06c755}
+    input,textarea{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:8px;padding:10px}
+    textarea{min-height:300px;font-family:ui-monospace,Consolas,monospace}
+    .muted{color:#666;font-size:13px}
+    .hide{display:none}
+    details{margin-top:8px}
+    pre{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;border-radius:8px;padding:10px}
+    .right{margin-left:auto}
+  </style>
 </head>
 <body>
 <div class="wrap">
   <h1>LIFF Share Target Picker</h1>
+  <p class="muted">หน้าทดสอบแชร์ Flex ผ่าน <code>liff.shareTargetPicker()</code>.
+  ถ้าเปิดนอกแอป LINE บนมือถือ ระบบอาจพาไปเปิดแอป LINE เพื่อใช้งานแชร์</p>
 
-  <div class="card">
-    <p class="muted">หากเปิดจากเบราว์เซอร์ภายนอกและยังไม่ได้ล็อกอิน ระบบจะพาคุณไปหน้า
-      <code>access.line.me</code> เพื่อเข้าสู่ระบบ แล้วกลับมาหน้านี้อัตโนมัติ</p>
+  <!-- แถบสถานะ -->
+  <div id="status" class="muted">กำลังเตรียมระบบ…</div>
 
+  <!-- กล่องให้กด login (กรณีไม่ล็อกอินและเราไม่รีไดเร็กต์) -->
+  <div id="loginBox" class="row hide">
+    <button id="btnLogin" class="primary">เข้าสู่ระบบด้วย LINE</button>
+    <button id="btnOpenInLine" title="เปิดหน้านี้ในแอป LINE (มือถือ)"><b>เปิดในแอป LINE</b></button>
+  </div>
+
+  <!-- UI หลัก: โชว์หลังล็อกอินแล้ว -->
+  <div id="uiMain" class="hide">
     <div class="row">
-      <button id="retry">รีเฟรช/เข้าสู่ระบบอีกครั้ง</button>
-      <button id="openInLine">เปิดในแอป LINE</button>
-      <button id="loadsample">โหลดตัวอย่าง Flex</button>
-      <button id="loadTpl">โหลดจากไฟล์ใน <code>/templates</code></button>
+      <button id="openInLine" class="hide">โปรดเปิดในแอป LINE…</button>
+      <button id="loadSample">ใส่ตัวอย่างเร็ว</button>
+      <button id="loadTpl">โหลดเทมเพลต</button>
+      <button id="btnShare" class="primary">แชร์</button>
+      <button id="btnLogout" class="right">ออกจากระบบ</button>
     </div>
 
-    <label for="alt">Alt Text</label>
-    <input id="alt" type="text" placeholder="เช่น โปรโมชันพิเศษ ✨" />
+    <label for="alt"><b>Alt Text</b></label>
+    <input id="alt" placeholder="ใส่ข้อความ alt ของ Flex" />
 
-    <label for="json">Flex JSON Contents (วาง JSON จาก Flex Simulator ได้โดยตรง)</label>
-    <textarea id="json" spellcheck="false" placeholder='{"type":"bubble", ...}'></textarea>
-
-    <div class="row">
-      <button id="share" class="primary">แชร์ด้วย Share Target Picker</button>
+    <div class="row" style="margin-top:8px">
+      <label for="json"><b>Flex JSON Contents</b> <span class="muted">วาง JSON จาก Flex Message Simulator ได้โดยตรง</span></label>
+      <textarea id="json" placeholder='{"type":"flex","altText":"...","contents":{...}}'></textarea>
     </div>
 
     <details>
       <summary>Debug</summary>
-      <pre id="dbg">-</pre>
+      <pre id="dbg"></pre>
     </details>
-
-    <p id="status" class="muted">กำลังเตรียม LIFF...</p>
   </div>
 </div>
 
 <script>
-  // ---------- helpers ----------
-  const $ = id => document.getElementById(id);
-  const log = (...a) => { console.log(...a); $('dbg').textContent = a.map(v=> {
-    try { return typeof v === 'string' ? v : JSON.stringify(v,null,2); }
-    catch(_) { return String(v); }
-  }).join(' '); };
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const log = (o)=>{ $('dbg').textContent = (typeof o==='string'?o:JSON.stringify(o,null,2)); };
 
   const qs = new URLSearchParams(location.search);
-  const Q_ID  = qs.get('id');          // อนุญาต override liffId ผ่าน ?id=
-  const Q_TPL = qs.get('tpl') || 'promo1';
-  const Q_P   = qs.get('p');           // base64url(JSON message object)
-
-  function b64urlToString(s){
-    // base64url → base64
-    const b64 = s.replace(/-/g,'+').replace(/_/g,'/');
-    try {
-      // atob -> binary → utf8
-      return decodeURIComponent(escape(atob(b64)));
-    } catch(e){
-      // เผื่อ error จาก escape/atob
-      return atob(b64);
-    }
-  }
-  function b64urlToJson(s){
-    return JSON.parse(b64urlToString(s));
-  }
 
   function setStatus(t){ $('status').textContent = t; }
 
-  function sampleFlex(){
-    return {
-      type: "bubble",
-      hero: { type:"image", url:"https://developers-resource.landpress.me/fx/img/review_gold_star_28.png",
-              size:"full", aspectRatio:"20:13", aspectMode:"cover" },
-      body: { type:"box", layout:"vertical", contents: [
-        { type:"text", text:"Brown Cafe", weight:"bold", size:"xl" },
-        { type:"text", text:"ส่วนลด 50% เฉพาะวันนี้!", margin:"md", wrap:true }
-      ]}
-    };
+  function b64ToJson(b64){
+    const utf8 = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(utf8);
   }
 
-  function buildMessages(){
-    const alt = $('alt').value || 'Flex Message';
-    let json;
-    try {
-      json = JSON.parse($('json').value.trim());
-    } catch(e){
-      alert('JSON ไม่ถูกต้อง'); throw e;
-    }
-
-    // รองรับหลายรูปแบบ input
-    if (Array.isArray(json)) return json;                         // เป็น array ของ message objects อยู่แล้ว
-    if (json.type === 'flex' && json.contents) return [json];     // เป็น flex object ครบถ้วน
-    if (json.contents) return [{ type:'flex', altText: alt, contents: json }]; // เป็น contents อย่างเดียว
-    // เผื่อกรณีอื่นๆ
-    return [{ type:'text', text: JSON.stringify(json).slice(0,1000) }];
+  async function loadConfig(){
+    // ป้องกันแคชหน้า GitHub Pages
+    const res = await fetch('./config.json?'+Date.now());
+    if(!res.ok) throw new Error('โหลด config.json ไม่ได้');
+    return res.json();
   }
 
-  async function loadMessagesIntoEditor(){
-    if (Q_P){                      // 1) p= base64url(JSON)
-      try{
-        const data = b64urlToJson(Q_P);
-        $('json').value = JSON.stringify(data, null, 2);
-        if (data.altText && !$('alt').value) $('alt').value = data.altText;
-        return;
-      }catch(e){ console.warn(e); }
-    }
-    // 2) โหลดจาก /templates/{tpl}.json
-    try{
-      const r = await fetch(`./templates/${Q_TPL}.json?${Date.now()}`);
-      const data = await r.json();
-      // รองรับทั้ง object ที่มี type:flex และแบบมี contents อย่างเดียว
-      const forEdit = (data.type==='flex' && data.contents) ? data.contents : data;
-      $('json').value = JSON.stringify(forEdit, null, 2);
-      if (data.altText) $('alt').value = data.altText;
-      return;
-    }catch(e){ console.warn(e); }
-
-    // 3) ตกลงมาที่ตัวอย่าง
-    $('json').value = JSON.stringify(sampleFlex(), null, 2);
-    if (!$('alt').value) $('alt').value = 'โปรโมชันพิเศษ ☕️';
-  }
-
-  // ---------- main ----------
-  async function main(){
-    setStatus('กำลังโหลด config.json ...');
-    const conf = await fetch('./config.json').then(r => r.json());
-    const liffId = Q_ID || conf.liffByTpl?.[Q_TPL] || conf.liffid;
-
-    if (!liffId){
-      setStatus('❌ ไม่พบ liffId (โปรดใส่ใน config.json หรือผ่าน ?id=)');
-      throw new Error('no liffId');
-    }
-
-    setStatus('กำลัง init LIFF ...');
-    await liff.init({ liffId });
-
-    // ถ้ายังไม่ล็อกอิน → ไปหน้าเว็บล็อกอิน (access.line.me) เสมอ
-    if (!liff.isLoggedIn()){
-      setStatus('ยังไม่ล็อกอิน → กำลังพาไปหน้าเข้าสู่ระบบ...');
-      liff.login({ redirectUri: location.href }); // กลับมาหน้านี้หลัง login
-      return;
-    }
-
-    setStatus('ล็อกอินแล้ว ✓ กำลังเตรียม editor ...');
-    await loadMessagesIntoEditor();
-    setStatus('พร้อมใช้งาน ✓ (ลุยแชร์ได้เลย)');
-    log({ liffId, inClient: liff.isInClient(), os: liff.getOS?.() });
-
-    // ปุ่มต่างๆ
-    $('retry').onclick = () => { location.reload(); };
-    $('openInLine').onclick = () => {
-      // เผื่อบางเครื่องต้องเปิดใน LIFF ภายในแอป เพื่อให้ shareTargetPicker ใช้ได้
-      liff.openWindow({ url: location.href, external: false });
-    };
-    $('loadsample').onclick = () => {
-      const data = sampleFlex();
-      $('json').value = JSON.stringify(data, null, 2);
-      if (!$('alt').value) $('alt').value = 'โปรโมชันพิเศษ ☕️';
-    };
-    $('loadTpl').onclick = async () => {
-      const name = prompt('พิมพ์ชื่อไฟล์ (ไม่ต้อง .json)\nเช่น: promo1');
-      if (!name) return;
-      try{
-        const r = await fetch(`./templates/${name}.json?${Date.now()}`);
-        const data = await r.json();
-        const forEdit = (data.type==='flex' && data.contents) ? data.contents : data;
-        $('json').value = JSON.stringify(forEdit, null, 2);
-        if (data.altText) $('alt').value = data.altText;
-      }catch(e){ alert('โหลดไม่สำเร็จ'); }
-    };
-    $('share').onclick = async () => {
-      try{
-        if (!liff.isApiAvailable('shareTargetPicker')){
-          alert('shareTargetPicker ใช้ไม่ได้ในสภาพแวดล้อมนี้\nลองกด "เปิดในแอป LINE" แล้วแชร์อีกครั้ง');
-          return;
+  async function ensureLogin(liff){
+    // ยังไม่ล็อกอิน → เดสก์ท็อป: รีไดเร็กต์ไปหน้า login ของ LINE อัตโนมัติ
+    if(!liff.isLoggedIn()){
+      if(!liff.isInClient()){
+        // กันลูป: ถ้ามี ?noauto จะไม่รีไดเร็กต์ (ไว้ดีบัก)
+        if(!qs.has('noauto')){
+          setStatus('ไปหน้าเข้าสู่ระบบ LINE…');
+          liff.login({ redirectUri: location.href });
+          return false; // โค้ดด้านล่างจะไม่รันต่อ
         }
-        const msgs = buildMessages();
-        // เติม altText ให้กรณี contents-only
-        msgs.forEach(m=>{
-          if (m.type==='flex' && !m.altText) m.altText = $('alt').value || 'Flex Message';
-        });
-        const res = await liff.shareTargetPicker(msgs);
-        if (res) alert('ส่งแล้ว 🎉');
-      }catch(e){
-        console.error(e);
-        alert('แชร์ไม่สำเร็จ: ' + (e.message || e));
       }
-    };
+      // มือถือ/หรือผู้ใช้กดหยุด: แสดงปุ่มให้กดเอง
+      $('loginBox').classList.remove('hide');
+      $('btnLogin').onclick = ()=> liff.login({ redirectUri: location.href });
+      $('btnOpenInLine').onclick = ()=> liff.openWindow({ url: location.href, external: false });
+      setStatus('ยังไม่ได้เข้าสู่ระบบ');
+      return false;
+    }
+    return true;
   }
 
-  main().catch(err=>{
-    console.error(err);
-    setStatus('เกิดข้อผิดพลาดในการตั้งค่า LIFF — ดู console/Debug');
-    log(err?.message || err);
-  });
+  async function main(){
+    try{
+      setStatus('กำลังโหลดการตั้งค่า…');
+      const cfg = await loadConfig();
+      const LIFF_ID = qs.get('id') || cfg.liffid;
+      if(!LIFF_ID){ setStatus('❌ ไม่มี LIFF ID ใน config.json'); return; }
+
+      setStatus('กำลังเริ่ม LIFF…');
+      await liff.init({ liffId: LIFF_ID });
+
+      // ถ้ายังไม่ล็อกอิน จะรีไดเร็กต์/หรือแสดงปุ่มให้กด
+      const ok = await ensureLogin(liff);
+      if(!ok) return;
+
+      // ล็อกอินแล้ว
+      $('uiMain').classList.remove('hide');
+      setStatus('พร้อมใช้งาน ✓');
+
+      // ใช้ไม่ได้? แนะนำเปิดในแอป LINE
+      if(!liff.isApiAvailable('shareTargetPicker')){
+        $('openInLine').classList.remove('hide');
+        $('openInLine').onclick = ()=> liff.openWindow({ url: location.href, external: false });
+      }
+
+      // เติมจาก query (?p=base64 ของ JSON / ?tpl=ชื่อไฟล์ใน templates)
+      async function preset(){
+        // base64 → JSON
+        const p = qs.get('p');
+        if(p){
+          try{
+            const data = b64ToJson(p);
+            $('json').value = JSON.stringify(data, null, 2);
+            $('alt').value  = data.altText || $('alt').value;
+            return;
+          }catch(e){ console.warn('p base64 invalid', e); }
+        }
+        // templates
+        const tpl = qs.get('tpl');
+        if(tpl){
+          try{
+            const r = await fetch('./templates/'+tpl+'.json?'+Date.now());
+            const data = await r.json();
+            $('json').value = JSON.stringify(data, null, 2);
+            $('alt').value  = data.altText || $('alt').value;
+          }catch(e){ console.warn('template not found', e); }
+        }
+      }
+
+      // ปุ่ม/อีเวนต์
+      $('loadSample').onclick = ()=>{
+        const sample = {
+          type:'flex',
+          altText:'ตัวอย่าง Flex',
+          contents:{
+            type:'bubble',
+            body:{ type:'box', layout:'vertical', contents:[
+              { type:'text', text:'Brown Cafe', weight:'bold', size:'xl' },
+              { type:'text', text:'ส่วนลด 50% เฉพาะวันนี้!', margin:'md', wrap:true }
+            ]}
+          }
+        };
+        $('alt').value  = sample.altText;
+        $('json').value = JSON.stringify(sample, null, 2);
+      };
+
+      $('loadTpl').onclick = async ()=>{
+        const name = prompt('ชื่อไฟล์ใน /templates (ไม่ต้องใส่ .json)\nเช่น: promo1');
+        if(!name) return;
+        try{
+          const r = await fetch('./templates/'+name+'.json?'+Date.now());
+          const data = await r.json();
+          $('json').value = JSON.stringify(data, null, 2);
+          $('alt').value  = data.altText || $('alt').value;
+        }catch(e){ alert('ไม่พบไฟล์ '+name+'.json'); }
+      };
+
+      $('btnShare').onclick = async ()=>{
+        try{
+          const obj = JSON.parse($('json').value || '{}');
+          const alt = $('alt').value || obj.altText || 'Flex Message';
+          const msgs = [{ type:'flex', altText: alt, contents: obj.contents || obj }];
+          const res = await liff.shareTargetPicker(msgs);
+          if(res){ alert('ส่งแล้ว 🎉'); }
+        }catch(e){
+          console.error(e);
+          alert('แชร์ไม่สำเร็จ: '+(e.message||e));
+        }
+      };
+
+      $('btnLogout').onclick = ()=>{ liff.logout(); location.reload(); };
+
+      await preset();
+      log({
+        os: liff.getOS && liff.getOS(),
+        inClient: liff.isInClient(),
+        shareApi: liff.isApiAvailable('shareTargetPicker')
+      });
+    }catch(err){
+      console.error(err);
+      setStatus('เกิดข้อผิดพลาด: '+(err.message||err));
+      log(err.stack || String(err));
+    }
+  }
+
+  main();
+})();
 </script>
 </body>
 </html>
